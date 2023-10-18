@@ -1,0 +1,26 @@
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: trigger-auth-redis-secret
+  namespace: {{ .Release.Namespace }}
+spec:
+  secretTargetRef:
+    # - parameter: username
+    #   name: redis-db-secret
+    #   key: redis_username
+    {{- if .Values.redis.tls.enabled }}  
+    - parameter: ca
+      name: redis-tls-secret
+      key: ca.crt
+    - parameter: cert
+      name: redis-tls-secret
+      key: tls.crt
+    - parameter: key
+      name: redis-tls-secret
+      key: tls.key
+    {{- else }}
+    - parameter: password
+      name:  {{ template "redis.secretName" . }}
+      key: redis-password  
+    {{- end }}
+

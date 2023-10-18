@@ -1,0 +1,38 @@
+
+{{- if .Values.browserscript.autoscaler.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: browserscript-scaledobject
+  labels:
+    deploymentName: browserscript-scaledobject
+spec:
+  minReplicaCount: {{ .Values.browserscript.autoscaler.minReplicas }}
+  maxReplicaCount: {{ .Values.browserscript.autoscaler.maxReplicas }}
+  pollingInterval: 30
+  cooldownPeriod: 300
+  scaleTargetRef:
+    name: synthetic-pop-browserscript-playback-engine
+  advanced:
+    restoreToOriginalReplicaCount: true
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 15
+  triggers:
+    - type: redis
+      metadata:
+        address: synthetic-pop-redis.{{ .Release.Namespace }}.svc.cluster.local:6378
+        listName: BrowserScriptPlaybackConfigQueue
+        listLength: "{{ .Values.browserscript.autoscaler.listLength }}"
+        activationListLength: "{{ .Values.browserscript.autoscaler.activationListLength }}"
+        enableTLS: "true"
+        unsafeSsl: "true" 
+        databaseIndex: "0"
+      authenticationRef:
+        name: trigger-auth-redis-secret
+{{- end }}

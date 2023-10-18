@@ -1,0 +1,37 @@
+{{- if .Values.javascript.autoscaler.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: javacript-scaledobject
+  labels:
+    deploymentName: javacript-scaledobject
+spec:
+  minReplicaCount: {{ .Values.javascript.autoscaler.minReplicas }}
+  maxReplicaCount: {{ .Values.javascript.autoscaler.mixReplicas }}
+  pollingInterval: 30
+  cooldownPeriod: 300
+  scaleTargetRef:
+    name: synthetic-pop-javascript-playback-engine
+  advanced:
+    restoreToOriginalReplicaCount: true
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 15
+  triggers:
+    - type: redis
+      metadata:
+        address: synthetic-pop-redis.{{ .Release.Namespace }}.svc.cluster.local:6378
+        listName: HttpScriptPlaybackConfigQueue
+        listLength: "{{ .Values.javascript.autoscaler.listLength }}"
+        activationListLength: "{{ .Values.javascript.autoscaler.activationListLength }}"
+        enableTLS: "true"
+        unsafeSsl: "true" 
+        databaseIndex: "0"
+      authenticationRef:
+        name: trigger-auth-redis-secret
+{{- end }}
